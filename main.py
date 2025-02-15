@@ -18,7 +18,10 @@ class CalculateRequest(BaseModel):
     num2: int
 
 
-User = Polzovatel(name="John Doe", id=1)
+class User(BaseModel):
+    name: str
+    age: int
+
 
 
 @app.post("/calculate")
@@ -30,3 +33,11 @@ async def calculate(data: CalculateRequest):
 @app.get("/users")
 async def det_user():
     return User
+
+
+@app.post("/user")
+async def det_user(data: User):
+    if data.age < 18:
+        return {"name":data.name, "age":data.age}
+    else:
+        return {"name": data.name, "age": data.age, "is_adult": "true"}
