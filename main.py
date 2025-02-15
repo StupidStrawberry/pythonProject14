@@ -1,7 +1,6 @@
 from fastapi.responses import HTMLResponse
 from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel
-from models import Polzovatel
+from models import Polzovatel, Feedback, CalculateRequest, UserCreate
 
 app = FastAPI()
 
@@ -13,21 +12,6 @@ async def read():
     return HTMLResponse(content=html_content, status_code=200)
 
 
-class CalculateRequest(BaseModel):
-    num1: int
-    num2: int
-
-
-class User(BaseModel):
-    name: str
-    age: int
-
-
-class Feedback(BaseModel):
-    name: str
-    message: str
-
-
 @app.post("/calculate")
 async def calculate(data: CalculateRequest):
     result = data.num1 + data.num2
@@ -36,11 +20,11 @@ async def calculate(data: CalculateRequest):
 
 @app.get("/users")
 async def det_user():
-    return User
+    return Polzovatel
 
 
 @app.post("/user")
-async def det_user(data: User):
+async def det_user(data: Polzovatel):
     if data.age < 18:
         return {"name":data.name, "age":data.age}
     else:
@@ -55,3 +39,13 @@ async def det_user(data: Feedback):
     file.write(data.name + ":" + data.message + "\n")
     file.close()
     return {"message": thanks}
+
+
+@app.post("/create_user")
+async def det_user(data: UserCreate):
+    result = {"name": data.name, "email": data.email}
+    if data.age is not None:
+        result.update({"age": data.age})
+    if data.is_subscribed is not None:
+        result.update({"is_subscribed": data.is_subscribed})
+    return result
