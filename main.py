@@ -23,6 +23,10 @@ class User(BaseModel):
     age: int
 
 
+class Feedback(BaseModel):
+    name: str
+    message: str
+
 
 @app.post("/calculate")
 async def calculate(data: CalculateRequest):
@@ -41,3 +45,13 @@ async def det_user(data: User):
         return {"name":data.name, "age":data.age}
     else:
         return {"name": data.name, "age": data.age, "is_adult": "true"}
+
+
+@app.post("/feedback")
+async def det_user(data: Feedback):
+    name = data.name
+    thanks = "Feedback received. Thank you, " + name + "!"
+    file = open("feedback.txt", "a")
+    file.write(data.name + ":" + data.message + "\n")
+    file.close()
+    return {"message": thanks}
