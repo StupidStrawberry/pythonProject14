@@ -27,3 +27,10 @@ class UserCreate(BaseModel):
     email: EmailStr = Field(default=...)
     age: Optional[int] = Field(default=None, ge=1)
     is_subscribed: Optional[bool] = Field(default=None)
+
+
+class Product(BaseModel):
+    product_id: int
+    name: str
+    category: str
+    price: float
