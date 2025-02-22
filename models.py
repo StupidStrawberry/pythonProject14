@@ -34,3 +34,8 @@ class Product(BaseModel):
     name: str
     category: str
     price: float
+
+
+class UserLogin(BaseModel):
+    username: str = Field(default=...)
+    password: str = Field(default=...)

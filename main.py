@@ -1,6 +1,9 @@
+import uuid
+
 from fastapi.responses import HTMLResponse
-from fastapi import FastAPI, Query, HTTPException, Cookie
-from models import Polzovatel, Feedback, CalculateRequest, UserCreate, Product
+from fastapi import FastAPI, Query, HTTPException, Depends, Response, status, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from models import Polzovatel, Feedback, CalculateRequest, UserCreate, Product, UserLogin
 from typing import List, Optional
 from pydantic import BaseModel
 
@@ -45,6 +48,17 @@ sample_product_5 = {
 sample_products = [sample_product_1, sample_product_2, sample_product_3, sample_product_4, sample_product_5]
 
 
+sessions = {}
+
+# Временное хранилище для пользователей
+users = {
+    "user123": {
+        "password": "password123",
+        "email": "user123@example.com"
+    }
+}
+
+
 @app.get("/")
 async def read():
     with open("index.html", "r", encoding="utf-8") as file:
@@ -62,14 +76,14 @@ async def calculate(data: CalculateRequest):
 async def get_user():
     return Polzovatel
 
-
+"""
 @app.post("/user")
 async def post_user(data: Polzovatel):
     if data.age < 18:
         return {"name":data.name, "age":data.age}
     else:
         return {"name": data.name, "age": data.age, "is_adult": "true"}
-
+"""
 
 @app.post("/feedback")
 async def feedback(data: Feedback):
@@ -121,4 +135,24 @@ async def get_product(product_id: int):
             return product
 
 
+@app.post("/login")
+async def login(user: UserLogin, response: Response):
+    if user.username in users and users[user.username]["password"] == user.password:
+        session_token = str(uuid.uuid4())
+        sessions[session_token] = user.username
+        response.set_cookie(key="session_token", value=session_token, httponly=True, secure=True)
+        return {"message": "Logged in successfully"}
+    else:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+
+@app.get("/user")
+async def get_user_profile(request: Request):
+    session_token = request.cookies.get("session_token")
+    if session_token in sessions:
+        username = sessions[session_token]
+        user_profile = users[username]
+        return UserLogin(username=user_profile["username"], password=user_profile["password"])
+    else:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
