@@ -156,3 +156,31 @@ async def get_user_profile(request: Request):
     else:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
+ACCEPT_LANGUAGE_PATTERN = re.compile(r"^[a-zA-Z-]+(,[a-zA-Z-]+)*(;q=[0-9.]+)?(,[a-zA-Z-]+(;q=[0-9.]+)?)*$")
+
+# Конечная точка для работы с заголовками
+@app.get("/headers")
+async def get_headers(request: Request):
+    # Извлечение заголовков
+    user_agent = request.headers.get("User-Agent")
+    accept_language = request.headers.get("Accept-Language")
+
+    # Проверка наличия обязательных заголовков
+    if not user_agent or not accept_language:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing required headers: 'User-Agent' or 'Accept-Language'"
+        )
+
+    # Проверка формата заголовка Accept-Language
+    if not ACCEPT_LANGUAGE_PATTERN.match(accept_language):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid 'Accept-Language' header format"
+        )
+
+    # Возврат JSON с заголовками
+    return {
+        "User-Agent": user_agent,
+        "Accept-Language": accept_language
+    }
