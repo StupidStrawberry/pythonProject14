@@ -1,15 +1,15 @@
 import uuid
-
+import re
 from fastapi.responses import HTMLResponse
 from fastapi import FastAPI, Query, HTTPException, Depends, Response, status, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPBasicCredentials, HTTPBasic
 from models import Polzovatel, Feedback, CalculateRequest, UserCreate, Product, UserLogin
 from typing import List, Optional
 from pydantic import BaseModel
 
 app = FastAPI()
 
-
+"""
 sample_product_1 = {
     "product_id": 123,
     "name": "Smartphone",
@@ -47,7 +47,7 @@ sample_product_5 = {
 
 sample_products = [sample_product_1, sample_product_2, sample_product_3, sample_product_4, sample_product_5]
 
-
+"""
 sessions = {}
 
 # Временное хранилище для пользователей
@@ -58,6 +58,7 @@ users = {
     }
 }
 
+security = HTTPBasic()
 
 @app.get("/")
 async def read():
@@ -110,7 +111,7 @@ class ProductSearchRequest(BaseModel):
     category: Optional[str] = None
     limit: Optional[int] = 10
 
-
+"""
 @app.get("/products/search")
 async def search_products(
     keyword: str,
@@ -126,24 +127,37 @@ async def search_products(
             if len(results) >= limit:
                 break
     return results
-
-
+"""
+"""
 @app.get("/product/{product_id}")
 async def get_product(product_id: int):
     for product in sample_products:
         if product["product_id"] == product_id:
             return product
+"""
 
+def authenticate_user(credentials: HTTPBasicCredentials = Depends(security)):
+    username = credentials.username
+    password = credentials.password
 
-@app.post("/login")
-async def login(user: UserLogin, response: Response):
-    if user.username in users and users[user.username]["password"] == user.password:
-        session_token = str(uuid.uuid4())
-        sessions[session_token] = user.username
-        response.set_cookie(key="session_token", value=session_token, httponly=True, secure=True)
-        return {"message": "Logged in successfully"}
+    if username in users and users[username]["password"] == password:
+        return username
     else:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Basic"}
+        )
+
+
+@app.get("/login")
+async def login(username: str = Depends(authenticate_user), response: Response = None):
+    session_token = str(uuid.uuid4())
+    sessions[session_token] = username
+    response.set_cookie(key="session_token", value=session_token, httponly=True, secure=True)
+
+    return {"message": "You got my secret, welcome"}
+
 
 
 @app.get("/user")
@@ -156,30 +170,23 @@ async def get_user_profile(request: Request):
     else:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
 
-ACCEPT_LANGUAGE_PATTERN = re.compile(r"^[a-zA-Z-]+(,[a-zA-Z-]+)*(;q=[0-9.]+)?(,[a-zA-Z-]+(;q=[0-9.]+)?)*$")
+ACCEPT_LANGUAGE_PATTERN = re.compile(r'^[a-zA-Z-]+(,[a-zA-Z-]+)*(;q=[0-9.]+)?(,[a-zA-Z-]+(;q=[0-9.]+)?)*$')
 
-# Конечная точка для работы с заголовками
 @app.get("/headers")
 async def get_headers(request: Request):
-    # Извлечение заголовков
     user_agent = request.headers.get("User-Agent")
     accept_language = request.headers.get("Accept-Language")
-
-    # Проверка наличия обязательных заголовков
     if not user_agent or not accept_language:
         raise HTTPException(
             status_code=400,
             detail="Missing required headers: 'User-Agent' or 'Accept-Language'"
         )
-
-    # Проверка формата заголовка Accept-Language
     if not ACCEPT_LANGUAGE_PATTERN.match(accept_language):
         raise HTTPException(
             status_code=400,
             detail="Invalid 'Accept-Language' header format"
         )
 
-    # Возврат JSON с заголовками
     return {
         "User-Agent": user_agent,
         "Accept-Language": accept_language
