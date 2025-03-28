@@ -1,22 +1,17 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 
-# Модели для запросов
 class TodoCreate(BaseModel):
     title: str
-    description: Optional[str] = None
+    description: str
 
 class TodoUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     completed: Optional[bool] = None
 
-# Модели для ответов API
 class TodoResponse(BaseModel):
     id: int
     title: str
-    description: Optional[str]
+    description: str
     completed: bool
-
-class TodoListResponse(BaseModel):
-    todos: List[TodoResponse]
